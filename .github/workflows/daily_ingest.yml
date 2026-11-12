@@ -1,0 +1,40 @@
+name: daily-ingest
+on:
+  schedule:
+    # 10:00 UTC = 18:00 MYT, Mon-Fri. BNM publishes the 17:00 rates by then.
+    # Malaysian public holidays are skipped inside the script (--business-day-only).
+    - cron: "0 10 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --no-dev
+      - name: Ingest BNM rates + OPR
+        run: uv run python -m myr_fx.ingest --business-day-only
+      - name: Alert on big moves (optional)
+        if: env.TELEGRAM_BOT_TOKEN != ''
+        run: uv run python -m myr_fx.alert
+      - name: Commit updated snapshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/*.csv
+          if git diff --cached --quiet; then echo "no new data"; exit 0; fi
+          git commit -m "data: BNM rates $(date -u +%F)"
+          git push
