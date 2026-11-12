@@ -1,0 +1,7 @@
+# Slim deploy deps for Streamlit Community Cloud (it reads this before the root uv.lock).
+# Forecasts are precomputed by GitHub Actions, so Prophet/pmdarima are not needed here.
+streamlit>=1.40
+pandas>=2.2
+numpy>=1.26
+plotly>=5.24
+duckdb>=1.1
