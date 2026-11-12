@@ -13,6 +13,7 @@ DATA_DIR = ROOT / "data"
 DB_PATH = DATA_DIR / "fx.duckdb"
 FX_CSV = "fx_rates.csv"
 OPR_CSV = "opr.csv"
+MACRO_CSV = "macro.csv"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS fx_rates (
@@ -28,6 +29,12 @@ CREATE TABLE IF NOT EXISTS opr (
     date          DATE PRIMARY KEY,
     change_in_opr DOUBLE,
     new_opr_level DOUBLE NOT NULL
+);
+CREATE TABLE IF NOT EXISTS macro (
+    date   DATE    NOT NULL,
+    series VARCHAR NOT NULL,
+    value  DOUBLE  NOT NULL,
+    PRIMARY KEY (date, series)
 );
 -- MYR per 1 unit of foreign currency (BNM quotes JPY/THB/IDR per 100 units)
 CREATE OR REPLACE VIEW fx_daily AS
@@ -64,6 +71,16 @@ def upsert_opr(con: duckdb.DuckDBPyConnection, df: pd.DataFrame) -> None:
     con.unregister("incoming_opr")
 
 
+def upsert_macro(con: duckdb.DuckDBPyConnection, df: pd.DataFrame) -> None:
+    if df.empty:
+        return
+    con.register("incoming_macro", df)
+    con.execute(
+        "INSERT OR REPLACE INTO macro SELECT date, series, value FROM incoming_macro"
+    ).fetchall()
+    con.unregister("incoming_macro")
+
+
 def delete_fx(con: duckdb.DuckDBPyConnection, keys: pd.DataFrame) -> None:
     if keys.empty:
         return
@@ -90,6 +107,11 @@ def load_csv(con: duckdb.DuckDBPyConnection, data_dir: Path = DATA_DIR) -> None:
     fx, opr = data_dir / FX_CSV, data_dir / OPR_CSV
     if fx.exists():
         upsert_fx(con, pd.read_csv(fx, parse_dates=["date"]).assign(date=lambda d: d.date.dt.date))
+    macro = data_dir / MACRO_CSV
+    if macro.exists():
+        upsert_macro(
+            con, pd.read_csv(macro, parse_dates=["date"]).assign(date=lambda d: d.date.dt.date)
+        )
     if opr.exists():
         upsert_opr(
             con, pd.read_csv(opr, parse_dates=["date"]).assign(date=lambda d: d.date.dt.date)
@@ -101,6 +123,9 @@ def export_csv(con: duckdb.DuckDBPyConnection, data_dir: Path = DATA_DIR) -> Non
     data_dir.mkdir(parents=True, exist_ok=True)
     con.execute("SELECT * FROM fx_rates ORDER BY currency, date").df().to_csv(
         data_dir / FX_CSV, index=False, float_format="%.6f", lineterminator="\n"
+    )
+    con.execute("SELECT * FROM macro ORDER BY series, date").df().to_csv(
+        data_dir / MACRO_CSV, index=False, lineterminator="\n"
     )
     con.execute("SELECT * FROM opr ORDER BY date").df().to_csv(
         data_dir / OPR_CSV, index=False, lineterminator="\n"
@@ -127,3 +152,12 @@ def opr_frame(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     df = con.execute("SELECT * FROM opr ORDER BY date").df()
     df["date"] = pd.to_datetime(df["date"])
     return df
+
+
+def macro_wide(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    df = con.execute("SELECT * FROM macro").df()
+    if df.empty:
+        return pd.DataFrame()
+    wide = df.pivot(index="date", columns="series", values="value").sort_index()
+    wide.index = pd.to_datetime(wide.index)
+    return wide

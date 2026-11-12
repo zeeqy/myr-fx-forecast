@@ -141,7 +141,13 @@ def _fake_opr(http, y):
 def test_run_is_idempotent_and_csv_roundtrips(tmp_path, monkeypatch):
     monkeypatch.setattr(sources, "FX_START", (2024, 1))
     monkeypatch.setattr(sources, "OPR_START_YEAR", 2024)
-    kw = dict(today=date(2024, 3, 15), fetch_fx=_fake_fx, fetch_opr=_fake_opr, pause=0)
+    kw = dict(
+        today=date(2024, 3, 15),
+        fetch_fx=_fake_fx,
+        fetch_opr=_fake_opr,
+        pause=0,
+        fetch_macro=lambda http, sid: [{"date": "2024-01-02", "series": sid, "value": 80.0}],
+    )
 
     first = ingest.run(db_path=tmp_path / "a.duckdb", data_dir=tmp_path, **kw)
     # fake days are the 2nd+3rd of Jan-Mar 2024; only 3 of those 6 are weekdays
@@ -155,6 +161,7 @@ def test_run_is_idempotent_and_csv_roundtrips(tmp_path, monkeypatch):
     # a fresh DB seeded from CSV gives the same table
     con = db.ensure_db(tmp_path / "b.duckdb", data_dir=tmp_path)
     assert db.count(con, "fx_rates") == first["fx_rows"]
+    assert db.count(con, "macro") == len(sources.FRED_SERIES)
     jpy = db.scalar(con, "SELECT rate FROM fx_daily WHERE currency='JPY' LIMIT 1")
     assert jpy == pytest.approx(0.011)  # per-100 quote normalised to per-unit
 

@@ -17,6 +17,7 @@ from collections.abc import Callable, Iterator
 from datetime import date
 from pathlib import Path
 
+import pandas as pd
 import requests
 
 from myr_fx import db, sources
@@ -40,6 +41,7 @@ def run(
     today: date | None = None,
     fetch_fx: Callable[..., list[dict]] = sources.fetch_fx_month,
     fetch_opr: Callable[..., list[dict]] = sources.fetch_opr_year,
+    fetch_macro: Callable[..., list[dict]] | None = sources.fetch_fred,
     pause: float = 0.15,
 ) -> dict[str, int]:
     today = today or date.today()
@@ -70,6 +72,17 @@ def run(
         opr_rows += fetch_opr(http, y)
         time.sleep(pause)
     db.upsert_opr(con, validate_opr(opr_rows))
+
+    # macro context is best-effort: a FRED outage must not block the BNM update
+    if fetch_macro is not None:
+        for sid in sources.FRED_SERIES:
+            try:
+                rows = pd.DataFrame(fetch_macro(http, sid))
+                if not rows.empty:
+                    rows["date"] = pd.to_datetime(rows["date"]).dt.date
+                    db.upsert_macro(con, rows)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("FRED %s failed: %s", sid, exc)
 
     summary = {
         "fx_rows": db.count(con, "fx_rates"),

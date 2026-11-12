@@ -8,9 +8,11 @@ currency (IDR and THB are missing at 11:30) and goes back to January 2006.
 
 from __future__ import annotations
 
+import io
 import time
 from typing import Any
 
+import pandas as pd
 import requests
 
 BNM_BASE = "https://api.bnm.gov.my/public"
@@ -81,3 +83,24 @@ def fetch_fx_month(http: requests.Session, currency: str, year: int, month: int)
 
 def fetch_opr_year(http: requests.Session, year: int) -> list[dict]:
     return parse_opr(get_json(http, f"{BNM_BASE}/opr/year/{year}"))
+
+
+# Context series for the "what drives MYR" analysis (FRED CSV download, no API key needed)
+FRED_SERIES = {"DCOILBRENTEU": "brent_usd", "DFF": "fed_funds"}
+
+
+def fetch_fred(http: requests.Session, series_id: str, start: str = "2006-01-01") -> list[dict]:
+    r = http.get(
+        "https://fred.stlouisfed.org/graph/fredgraph.csv",
+        params={"id": series_id, "cosd": start},
+        # FRED stalls on unknown custom User-Agents; the default requests UA is accepted
+        timeout=60,
+    )
+    r.raise_for_status()
+    df = pd.read_csv(io.StringIO(r.text), na_values=["."])
+    df.columns = ["date", "value"]
+    df = df.dropna()
+    return [
+        {"date": d, "series": FRED_SERIES[series_id], "value": float(v)}
+        for d, v in zip(df["date"], df["value"], strict=True)
+    ]
