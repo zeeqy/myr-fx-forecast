@@ -224,11 +224,13 @@ else:
         )
         st.dataframe(
             tbl.style.format("{:.4f}", subset=["MAE"]).format(
-                "{:.2f}", subset=["MAPE_%", "MAPE_day21_%", "coverage95_%", "MAE_vs_naive"]
+                "{:.2f}",
+                subset=["MAPE_%", "MAPE_day21_%", "coverage95_%", "MAE_vs_naive", "t_vs_naive"],
             ),
             use_container_width=True,
         )
         st.caption(
-            "MAE_vs_naive < 1 means the model beats 'tomorrow = today'. "
+            "MAE_vs_naive < 1 means the model beats 'tomorrow = today'; |t_vs_naive| < 2 means "
+            "the gap is within noise. "
             "coverage95 should be ~95 if the band is honest."
         )

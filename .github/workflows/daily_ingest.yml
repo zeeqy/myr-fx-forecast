@@ -27,6 +27,8 @@ jobs:
       - run: uv sync --frozen --no-dev
       - name: Ingest BNM rates + OPR
         run: uv run python -m myr_fx.ingest --business-day-only
+      - name: Refresh 30-day forecasts (backtest is run manually, not daily)
+        run: uv run python -m myr_fx.forecast --forecast-only
       - name: Alert on big moves (optional)
         if: env.TELEGRAM_BOT_TOKEN != ''
         run: uv run python -m myr_fx.alert

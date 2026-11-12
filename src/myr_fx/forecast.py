@@ -167,7 +167,19 @@ def score(results: pd.DataFrame) -> pd.DataFrame:
     )
     base = out.loc["naive", "MAE"] if "naive" in out.index else np.nan
     out["MAE_vs_naive"] = out["MAE"] / base
+    if "naive" in out.index and "origin" in r.columns:
+        out["t_vs_naive"] = [vs_naive_t(r, m) for m in out.index]
     return out.sort_values("MAE")
+
+
+def vs_naive_t(r: pd.DataFrame, model: str) -> float:
+    """Paired t-stat of per-fold MAE (model minus naive). Folds don't overlap (step = h), so
+    they're roughly independent. |t| < 2 means 'no detectable difference'. Negative = better."""
+    if model == "naive":
+        return 0.0
+    fold = r.groupby(["model", "origin"])["abs_err"].mean().unstack(0)
+    d = (fold[model] - fold["naive"]).dropna()
+    return float(d.mean() / (d.std(ddof=1) / np.sqrt(len(d)))) if len(d) > 1 else np.nan
 
 
 def make_forecasts(
