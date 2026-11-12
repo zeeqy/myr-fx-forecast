@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+data/*.wal
+data/raw/
+data/fx.duckdb
+data/fx.duckdb.wal

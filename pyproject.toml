@@ -1,0 +1,40 @@
+[project]
+name = "myr-fx"
+version = "0.1.0"
+description = "Automated MYR exchange-rate tracker, analysis and forecasting dashboard (BNM Open API)."
+authors = [{ name = "Zeeq" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "duckdb>=1.1",
+    "pandas>=2.2",
+    "requests>=2.32",
+    "plotly>=5.24",
+    "statsmodels>=0.14",
+    "pmdarima>=2.0",
+    "prophet>=1.1.6",
+    "holidays>=0.60",
+    "streamlit>=1.40",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+    "jupyter>=1.1",
+    "nbconvert>=7.16",
+    "kaleido>=0.2.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
