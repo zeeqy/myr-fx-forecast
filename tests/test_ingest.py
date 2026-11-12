@@ -7,7 +7,7 @@ import pytest
 
 from myr_fx import db, ingest, sources
 from myr_fx.bizdays import is_my_business_day
-from myr_fx.validate import validate_fx, validate_opr
+from myr_fx.validate import flag_bad_history, validate_fx, validate_opr
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -144,7 +144,8 @@ def test_run_is_idempotent_and_csv_roundtrips(tmp_path, monkeypatch):
     kw = dict(today=date(2024, 3, 15), fetch_fx=_fake_fx, fetch_opr=_fake_opr, pause=0)
 
     first = ingest.run(db_path=tmp_path / "a.duckdb", data_dir=tmp_path, **kw)
-    assert first["fx_rows"] == 8 * 3 * 2 and first["opr_rows"] == 1
+    # fake days are the 2nd+3rd of Jan-Mar 2024; only 3 of those 6 are weekdays
+    assert first["fx_rows"] == 8 * 3 and first["opr_rows"] == 1
     csv_1 = (tmp_path / db.FX_CSV).read_text()
 
     second = ingest.run(db_path=tmp_path / "a.duckdb", data_dir=tmp_path, **kw)
@@ -156,3 +157,27 @@ def test_run_is_idempotent_and_csv_roundtrips(tmp_path, monkeypatch):
     assert db.count(con, "fx_rates") == first["fx_rows"]
     jpy = db.scalar(con, "SELECT rate FROM fx_daily WHERE currency='JPY' LIMIT 1")
     assert jpy == pytest.approx(0.011)  # per-100 quote normalised to per-unit
+
+
+def test_flag_bad_history_catches_weekend_and_two_day_spike():
+    dates = pd.bdate_range("2006-12-18", "2007-01-12")
+    df = pd.DataFrame({"date": dates.date, "currency": "JPY", "middle": 2.97})
+    df.loc[df["date"].astype(str).isin(["2007-01-01", "2007-01-02"]), "middle"] = 0.0297
+    sat = pd.DataFrame({"date": [date(2006, 12, 30)], "currency": ["JPY"], "middle": [2.97]})
+    bad = flag_bad_history(pd.concat([df, sat], ignore_index=True))
+    assert sorted(map(str, bad["date"])) == ["2006-12-30", "2007-01-01", "2007-01-02"]
+
+
+def test_flag_bad_history_keeps_real_moves():
+    dates = pd.bdate_range("2024-07-22", periods=20)
+    mid = [4.6] * 10 + [4.4] * 10  # a sharp but genuine 4% level shift
+    df = pd.DataFrame({"date": dates.date, "currency": "USD", "middle": mid})
+    assert flag_bad_history(df).empty
+
+
+def test_flag_bad_history_snap_back_print():
+    dates = pd.bdate_range("2007-02-26", periods=10)
+    mid = [9.9] * 10
+    mid[5] = 10.59  # +7% for one day, then straight back
+    df = pd.DataFrame({"date": dates.date, "currency": "THB", "middle": mid})
+    assert list(flag_bad_history(df)["date"]) == [dates[5].date()]

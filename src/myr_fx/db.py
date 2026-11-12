@@ -64,6 +64,17 @@ def upsert_opr(con: duckdb.DuckDBPyConnection, df: pd.DataFrame) -> None:
     con.unregister("incoming_opr")
 
 
+def delete_fx(con: duckdb.DuckDBPyConnection, keys: pd.DataFrame) -> None:
+    if keys.empty:
+        return
+    con.register("bad_keys", keys)
+    con.execute(
+        "DELETE FROM fx_rates USING bad_keys "
+        "WHERE fx_rates.date = bad_keys.date AND fx_rates.currency = bad_keys.currency"
+    ).fetchall()
+    con.unregister("bad_keys")
+
+
 def scalar(con: duckdb.DuckDBPyConnection, sql: str, params: list | None = None):
     """First value of a query. Uses fetchall(): DuckDB 2.x keeps a connection busy until
     a result is fully consumed, so fetchone() would block the next statement."""

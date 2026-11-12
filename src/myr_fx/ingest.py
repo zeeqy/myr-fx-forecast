@@ -21,7 +21,7 @@ import requests
 
 from myr_fx import db, sources
 from myr_fx.bizdays import is_my_business_day
-from myr_fx.validate import validate_fx, validate_opr
+from myr_fx.validate import flag_bad_history, validate_fx, validate_opr
 
 log = logging.getLogger("ingest")
 
@@ -59,6 +59,9 @@ def run(
         clean = validate_fx(rows, today=today)
         db.upsert_fx(con, clean)
         log.info("%s: fetched %d rows from %d-%02d", ccy, len(clean), *start)
+
+    # cross-row checks need the whole history, not just this batch
+    db.delete_fx(con, flag_bad_history(con.execute("SELECT * FROM fx_rates").df()))
 
     last_opr = db.scalar(con, "SELECT max(date) FROM opr")
     first_year = sources.OPR_START_YEAR if (full or last_opr is None) else last_opr.year
