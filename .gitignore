@@ -9,3 +9,4 @@ data/*.wal
 data/raw/
 data/fx.duckdb
 data/fx.duckdb.wal
+.claude/

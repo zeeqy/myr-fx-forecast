@@ -28,7 +28,7 @@ NAMES = {
     "IDR": "Indonesian rupiah",
 }
 PER_100 = {"JPY", "THB", "IDR"}  # quoted per 100 units, as BNM and Malaysian banks do
-HIKE, CUT = "#c0392b", "#2471a3"
+HIKE, CUT = "#e74c3c", "#2ecc71"  # red hike, green cut: distinct from the blue price line
 
 
 @st.cache_data(ttl=3600)
@@ -53,6 +53,12 @@ def load_forecasts() -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
         if p.exists():
             scores[pair] = score(pd.read_csv(p))
     return fc, scores
+
+
+def ordinal(x: float) -> str:
+    n = int(round(x))
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
 
 
 wide, opr, spread = load()
@@ -89,7 +95,8 @@ yr = series.loc[: series.index[-1] - pd.DateOffset(years=1)].iloc[-1]
 c1, c2, c3, c4 = st.columns(4)
 c1.metric(unit_label, f"{last:.4f}", f"{(last / prev - 1):+.2%} d/d", delta_color="inverse")
 c2.metric("1-year change", f"{(last / yr - 1):+.2%}", delta_color="off")
-c3.metric("Range in view", f"{view.min():.3f} – {view.max():.3f}")
+vol_now = insights.rolling_vol(wide[[ccy]], 21)[ccy].iloc[-1]
+c3.metric("21-day volatility", f"{vol_now:.1f}%", help="Annualised std of daily log returns")
 c4.metric("OPR now", f"{opr['new_opr_level'].iloc[-1]:.2f}%")
 
 # ---------------- price chart ----------------
@@ -127,7 +134,7 @@ fig.update_layout(
     legend=dict(orientation="h", y=1.08),
 )
 st.plotly_chart(fig, use_container_width=True)
-st.caption("▲ red = OPR hike, ▼ blue = OPR cut (BNM Monetary Policy Committee decisions).")
+st.caption("▲ red = OPR hike, ▼ green = OPR cut (BNM Monetary Policy Committee decisions).")
 
 # ---------------- volatility ----------------
 left, right = st.columns([3, 2])
@@ -165,7 +172,7 @@ with right:
     adv = insights.convert_advice(wide[ccy] * mult, lookback=90)
     icon = {"good": "🟢", "neutral": "🟡", "poor": "🔴"}[adv["label"]]
     st.markdown(
-        f"**Best day to convert?** {icon} Today is at the **{adv['percentile']:.0f}th "
+        f"**Best day to convert?** {icon} Today is at the **{ordinal(adv['percentile'])} "
         f"percentile** of the last 90 days ({adv['low']:.4f} – {adv['high']:.4f}). "
         f"{adv['text']}"
     )
