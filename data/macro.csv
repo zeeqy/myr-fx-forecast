@@ -5246,6 +5246,10 @@ date,series,value
 2026-11-09,brent_usd,91.03
 2026-11-10,brent_usd,90.16
 2026-11-11,brent_usd,92.14
+2026-11-12,brent_usd,95.42
+2026-11-13,brent_usd,95.17
+2026-11-16,brent_usd,92.9
+2026-11-17,brent_usd,92.94
 2006-01-01,fed_funds,4.09
 2006-01-02,fed_funds,4.09
 2006-01-03,fed_funds,4.34
@@ -12868,3 +12872,6 @@ date,series,value
 2026-11-11,fed_funds,3.88
 2026-11-12,fed_funds,3.88
 2026-11-13,fed_funds,3.88
+2026-11-14,fed_funds,3.88
+2026-11-15,fed_funds,3.88
+2026-11-16,fed_funds,3.88
