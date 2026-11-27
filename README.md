@@ -4,7 +4,7 @@
 
 ![dashboard](docs/dashboard.jpg)
 
-**Live demo:** _coming soon (Streamlit Community Cloud)_ · **Notebook:** [`notebooks/01_eda.ipynb`](notebooks/01_eda.ipynb) · **Backtest:** [`reports/backtest_summary.md`](reports/backtest_summary.md)
+**Live demo:** [myr-fx-forecast.streamlit.app](https://myr-fx-forecast.streamlit.app) · **Notebook:** [`notebooks/01_eda.ipynb`](notebooks/01_eda.ipynb) · **Backtest:** [`reports/backtest_summary.md`](reports/backtest_summary.md)
 
 ## Problem
 Malaysian students paying overseas fees, and SMEs paying suppliers, ask the same questions.
