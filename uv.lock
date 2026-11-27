@@ -1050,7 +1050,7 @@ requires-dist = [
     { name = "prophet", specifier = ">=1.1.6" },
     { name = "requests", specifier = ">=2.32" },
     { name = "statsmodels", specifier = ">=0.14" },
-    { name = "streamlit", specifier = ">=1.40" },
+    { name = "streamlit", specifier = ">=1.50" },
     { name = "tabulate", specifier = ">=0.10.0" },
 ]
 

@@ -133,7 +133,7 @@ fig.update_layout(
     hovermode="x unified",
     legend=dict(orientation="h", y=1.08),
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 st.caption("▲ red = OPR hike, ▼ green = OPR cut (BNM Monetary Policy Committee decisions).")
 
 # ---------------- volatility ----------------
@@ -145,7 +145,7 @@ with left:
         go.Scatter(x=vol.index, y=vol, fill="tozeroy", name="21-day vol", line=dict(width=1))
     )
     vfig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), yaxis_title="annualised %")
-    st.plotly_chart(vfig, use_container_width=True)
+    st.plotly_chart(vfig, width="stretch")
     st.caption(
         f"Long-run median: {insights.rolling_vol(wide[[ccy]])[ccy].median():.1f}%. "
         f"Latest: {vol.iloc[-1]:.1f}%."
@@ -223,7 +223,7 @@ else:
         hovermode="x unified",
         legend=dict(orientation="h", y=1.08),
     )
-    st.plotly_chart(ffig, use_container_width=True)
+    st.plotly_chart(ffig, width="stretch")
     if tbl is not None:
         st.markdown(
             "**How good is it really?** Walk-forward backtest, 24 monthly folds, "
@@ -234,7 +234,7 @@ else:
                 "{:.2f}",
                 subset=["MAPE_%", "MAPE_day21_%", "coverage95_%", "MAE_vs_naive", "t_vs_naive"],
             ),
-            use_container_width=True,
+            width="stretch",
         )
         st.caption(
             "MAE_vs_naive < 1 means the model beats 'tomorrow = today'; |t_vs_naive| < 2 means "

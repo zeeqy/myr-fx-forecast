@@ -13,7 +13,7 @@ dependencies = [
     "pmdarima>=2.0",
     "prophet>=1.1.6",
     "holidays>=0.60",
-    "streamlit>=1.40",
+    "streamlit>=1.50",
     "tabulate>=0.10.0",
 ]
 
